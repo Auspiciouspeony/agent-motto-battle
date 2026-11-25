@@ -43,10 +43,22 @@ def write_entry(text: str) -> None:
     grader collects outputs as another user.
     """
     os.makedirs("/output", exist_ok=True)
-    os.chmod("/output", 0o755)
+    # Best-effort only: the grader may run us as an unprivileged user
+    # with /output owned by the harness, so chmod can raise
+    # PermissionError -- that must not fail the run.
+    try:
+        os.chmod("/output", 0o755)
+    except OSError:
+        pass
     with open(OUTPUT_PATH, "w", encoding="utf-8", newline="") as f:
         f.write(text)
-    os.chmod(OUTPUT_PATH, 0o644)
+    # Same best-effort guard as above: if the harness owns the file
+    # or the umask already gives the right mode, a failed chmod
+    # must not turn a successful write into a failed run.
+    try:
+        os.chmod(OUTPUT_PATH, 0o644)
+    except OSError:
+        pass
 
 
 def main() -> None:
